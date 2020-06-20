@@ -20,7 +20,7 @@
 
             sampler2D _MainTex;
             uniform float4 _CamWorldSpace;
-            uniform float4x4 _CamFrustum,_CamToWolrd;
+            uniform float4x4 _CamFrustum,_CamToWorldMatrix;
 
 
             struct appdata
@@ -33,22 +33,27 @@
             {
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
+                float3 ray : TEXCOORD1;//?
             };
 
             v2f vert (appdata v)
             {
                 v2f o;
+                half index = v.vertex.z;
+                v.vertex.z = 0;
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
+                o.ray = _CamFrustum[(int)index ].xyz;
+                o.ray /= abs(o.ray.z);
+                o.ray = mul(_CamToWorldMatrix,o.ray);
                 return o;
             }
 
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed4 col = tex2D(_MainTex, i.uv);
-                // just invert the colors
-                col.rgb = 1 - col.rgb;
-                return col;
+               float3 rayDirection = normalize(i.ray.xyz);
+               float3 rayOrigin = _CamWorldSpace;
+               return fixed4(rayDirection,1);
             }
             ENDCG
         }
